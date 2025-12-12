@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Турагент | Экспертная система</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            font-family: 'Montserrat', sans-serif; 
+            background: #f4f7f6; 
+            margin: 0; 
+            padding: 20px; 
+            color: #2c3e50; 
+        }
+        .container { 
+            max-width: 650px; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 40px; 
+            border-radius: 20px; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.05); 
+        }
+        h1 { 
+            text-align: center; 
+            color: #2980b9; 
+            margin-bottom: 40px; 
+            font-size: 1.8rem;
+        }
+        
+        /* Fact Row Styling */
+        .fact-row {
+            margin-bottom: 25px;
+            background: #fff;
+        }
+        
+        .fact-title {
+            text-align: center;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #7f8c8d;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .switch-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #ecf0f1;
+            padding: 8px;
+            border-radius: 50px;
+            position: relative;
+            height: 40px;
+        }
+
+        .option {
+            flex: 1;
+            text-align: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+            z-index: 2;
+            cursor: pointer;
+            transition: color 0.3s;
+            user-select: none;
+            padding: 0 10px;
+        }
+
+        .option.active { color: white; }
+        .option.inactive { color: #7f8c8d; }
+
+        /* The moving pill */
+        .toggle-pill {
+            position: absolute;
+            top: 4px;
+            bottom: 4px;
+            left: 4px;
+            width: calc(50% - 4px);
+            background: #2980b9;
+            border-radius: 40px;
+            transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            z-index: 1;
+        }
+
+        /* Checkbox logic (hidden) */
+        .hidden-check { display: none; }
+        .hidden-check:checked ~ .toggle-pill {
+            transform: translateX(100%);
+            background: #e74c3c; /* Red color for right side/Party etc, optional */
+            background: #2980b9;
+        }
+
+        /* Button */
+        .btn-infer {
+            width: 100%;
+            padding: 18px;
+            background: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: 0.2s;
+            box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
+        }
+        .btn-infer:hover { background: #219150; transform: translateY(-2px); }
+
+        /* Results */
+        .results { margin-top: 30px; }
+        .res-card {
+            background: white;
+            border: 2px solid #eee;
+            padding: 15px 20px;
+            margin-bottom: 12px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            opacity: 0.5;
+        }
+        .res-card.match {
+            border-color: #27ae60;
+            background: #eafaf1;
+            opacity: 1;
+        }
+        .icon { font-size: 1.4rem; margin-right: 15px; width: 30px; text-align: center; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🌍 Экспертная Система</h1>
+    <div id="facts-area">Loading...</div>
+    <button class="btn-infer" onclick="infer()">Подобрать тур</button>
+    <div id="results-area" class="results"></div>
+</div>
+
+<script>
+    let kbFacts = [];
+
+    async function init() {
+        const r = await fetch('/kb');
+        const data = await r.json();
+        kbFacts = data.facts;
+        
+        const area = document.getElementById('facts-area');
+        area.innerHTML = '';
+
+        kbFacts.forEach(f => {
+            const parts = (f.description || "Нет / Да").split('/').map(s => s.trim());
+            
+            const div = document.createElement('div');
+            div.className = 'fact-row';
+            div.innerHTML = `
+                <div class="fact-title">${f.label}</div>
+                <div class="switch-wrapper" onclick="toggle('${f.id}')">
+                    <input type="checkbox" id="${f.id}" class="hidden-check">
+                    <div class="toggle-pill"></div>
+                    <div class="option active" id="opt-l-${f.id}">${parts[0]}</div>
+                    <div class="option inactive" id="opt-r-${f.id}">${parts[1]}</div>
+                </div>
+            `;
+            area.appendChild(div);
+        });
+    }
+
+    function toggle(id) {
+        const chk = document.getElementById(id);
+        chk.checked = !chk.checked;
+        
+        const left = document.getElementById(`opt-l-${id}`);
+        const right = document.getElementById(`opt-r-${id}`);
+        
+        if(chk.checked) {
+            left.classList.replace('active', 'inactive');
+            right.classList.replace('inactive', 'active');
+        } else {
+            left.classList.replace('inactive', 'active');
+            right.classList.replace('active', 'inactive');
+        }
+    }
+
+    async function infer() {
+        const inputs = {};
+        kbFacts.forEach(f => {
+            inputs[f.id] = document.getElementById(f.id).checked;
+        });
+
+        const r = await fetch('/infer', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({inputs})
+        });
+        const data = await r.json();
+        
+        const resArea = document.getElementById('results-area');
+        resArea.innerHTML = '';
+        
+        // Сортировка
+        const sorted = Object.entries(data.goals).sort((a,b) => b[1] - a[1]);
+        
+        if (sorted.every(x => !x[1])) {
+            resArea.innerHTML = '<div style="text-align:center;color:#999">Нет подходящих вариантов.</div>';
+            return;
+        }
+
+        sorted.forEach(([label, isMatch]) => {
+            // Если вы хотите видеть только совпадения, раскомментируйте строку ниже:
+            // if (!isMatch) return;
+
+            const card = document.createElement('div');
+            card.className = 'res-card ' + (isMatch ? 'match' : '');
+            card.innerHTML = `
+                <div class="icon">${isMatch ? '✅' : '❌'}</div>
+                <div style="font-weight:600">${label}</div>
+            `;
+            resArea.appendChild(card);
+        });
+    }
+
+    init();
+</script>
+</body>
+</html>

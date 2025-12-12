@@ -1,0 +1,156 @@
+{
+  "facts": [
+    { 
+      "id": "F_IS_SUMMER", 
+      "label": "Сезон поездки",
+      "description": "Зима (Холод) / Лето (Жара)", 
+      "value": null 
+    },
+    { 
+      "id": "F_IS_BEACH", 
+      "label": "Тип отдыха",
+      "description": "Активный, Горы, Город / Пляж, Море, Релакс", 
+      "value": null 
+    },
+    { 
+      "id": "F_IS_PARTY", 
+      "label": "Стиль досуга",
+      "description": "Спокойный, Культурный / Тусовки, Развлечения", 
+      "value": null 
+    },
+    { 
+      "id": "F_IS_RICH", 
+      "label": "Бюджет",
+      "description": "Эконом, Средний / Премиум, VIP", 
+      "value": null 
+    },
+    { 
+      "id": "F_HAS_VISA", 
+      "label": "Виза",
+      "description": "Нет визы (РФ/Безвиз) / Есть Шенген/Виза", 
+      "value": null 
+    },
+    { 
+      "id": "F_WITH_KIDS", 
+      "label": "Компания",
+      "description": "Взрослые, Пары / Семья с детьми", 
+      "value": null 
+    },
+
+    { "id": "G_TURKEY", "label": "Турция", "value": false },
+    { "id": "G_SOCHI_SEA", "label": "Сочи (Пляжный сезон)", "value": false },
+    { "id": "G_SOCHI_SKI", "label": "Сочи (Красная Поляна/Лыжи)", "value": false },
+    { "id": "G_EGYPT", "label": "Египет", "value": false },
+    { "id": "G_THAILAND", "label": "Таиланд (Тропики)", "value": false },
+    { "id": "G_MALDIVES", "label": "Мальдивы (Райский пляж)", "value": false },
+    { "id": "G_ALPS", "label": "Альпы (Европейские горы)", "value": false },
+    { "id": "G_SPB", "label": "Санкт-Петербург (Культура)", "value": false },
+    { "id": "G_IBIZA", "label": "Ибица (Летние тусовки)", "value": false }
+  ],
+
+  "rules": [
+    {
+      "comment": "ТУРЦИЯ: Только летом. Зимой там холодно купаться.",
+      "id": "R_TURKEY_SUMMER",
+      "if": { "all": [
+        { "fact": "F_IS_SUMMER", "eq": true },
+        { "fact": "F_IS_BEACH", "eq": true },
+        { "fact": "F_HAS_VISA", "eq": false } 
+      ]},
+      "then": [{ "set": "G_TURKEY", "value": true }]
+    },
+
+    {
+      "comment": "СОЧИ ЛЕТО: Море, жара. Требует Лето + Пляж + Без визы.",
+      "id": "R_SOCHI_SUMMER",
+      "if": { "all": [
+        { "fact": "F_IS_SUMMER", "eq": true },
+        { "fact": "F_IS_BEACH", "eq": true },
+        { "fact": "F_HAS_VISA", "eq": false },
+        { "fact": "F_IS_RICH", "eq": false } 
+      ]},
+      "then": [{ "set": "G_SOCHI_SEA", "value": true }]
+    },
+
+    {
+      "comment": "СОЧИ ЗИМА: Лыжи. Требует Зима (не лето) + Горы (не пляж).",
+      "id": "R_SOCHI_WINTER",
+      "if": { "all": [
+        { "fact": "F_IS_SUMMER", "eq": false },
+        { "fact": "F_IS_BEACH", "eq": false },
+        { "fact": "F_HAS_VISA", "eq": false }
+      ]},
+      "then": [{ "set": "G_SOCHI_SKI", "value": true }]
+    },
+
+    {
+      "comment": "ЕГИПЕТ: Идеален зимой для моря. Летом слишком жарко, но допустимо (упростим до зимнего приоритета).",
+      "id": "R_EGYPT_WINTER_SEA",
+      "if": { "all": [
+        { "fact": "F_IS_SUMMER", "eq": false },
+        { "fact": "F_IS_BEACH", "eq": true },
+        { "fact": "F_IS_RICH", "eq": false }
+      ]},
+      "then": [{ "set": "G_EGYPT", "value": true }]
+    },
+
+    {
+      "comment": "ТАИЛАНД: Зимой для пляжа, если есть деньги (дороже Египта).",
+      "id": "R_THAILAND_WINTER",
+      "if": { "all": [
+        { "fact": "F_IS_SUMMER", "eq": false },
+        { "fact": "F_IS_BEACH", "eq": true },
+        { "fact": "F_IS_RICH", "eq": true }
+      ]},
+      "then": [{ "set": "G_THAILAND", "value": true }]
+    },
+
+    {
+      "comment": "АЛЬПЫ: Зима + Горы + Виза.",
+      "id": "R_ALPS_SKI",
+      "if": { "all": [
+        { "fact": "F_IS_SUMMER", "eq": false },
+        { "fact": "F_IS_BEACH", "eq": false },
+        { "fact": "F_HAS_VISA", "eq": true }
+      ]},
+      "then": [{ "set": "G_ALPS", "value": true }]
+    },
+
+    {
+      "comment": "ИБИЦА: Лето + Тусовки + Виза + Пляж.",
+      "id": "R_IBIZA",
+      "if": { "all": [
+        { "fact": "F_IS_SUMMER", "eq": true },
+        { "fact": "F_IS_PARTY", "eq": true },
+        { "fact": "F_HAS_VISA", "eq": true }
+      ]},
+      "then": [{ "set": "G_IBIZA", "value": true }]
+    },
+
+    {
+      "comment": "МАЛЬДИВЫ: Любой сезон (вечное лето), но дорого и пляж.",
+      "id": "R_MALDIVES",
+      "if": { "all": [
+        { "fact": "F_IS_BEACH", "eq": true },
+        { "fact": "F_IS_RICH", "eq": true },
+        { "fact": "F_IS_PARTY", "eq": false }
+      ]},
+      "then": [{ "set": "G_MALDIVES", "value": true }]
+    },
+
+    {
+      "comment": "ПИТЕР: Экскурсии (не пляж), без визы, Культура (не тусовки).",
+      "id": "R_SPB",
+      "if": { "all": [
+        { "fact": "F_IS_BEACH", "eq": false },
+        { "fact": "F_IS_PARTY", "eq": false },
+        { "fact": "F_HAS_VISA", "eq": false }
+      ]},
+      "then": [{ "set": "G_SPB", "value": true }]
+    }
+  ],
+  "goals": [
+    "G_TURKEY", "G_SOCHI_SEA", "G_SOCHI_SKI", "G_EGYPT", 
+    "G_THAILAND", "G_MALDIVES", "G_ALPS", "G_SPB", "G_IBIZA"
+  ]
+}
